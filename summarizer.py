@@ -31,11 +31,9 @@ def summarize_with_gpt(text):
 
 def generate_daily_summary():
     """Retrieve weather data from MongoDB, summarize it, and send to Telegram."""
-    # Get weather data from the last 24 hours
     since = datetime.utcnow() - timedelta(days=1)
     weather_entries = collection.find({"timestamp": {"$gte": since}})
 
-    # Compile weather descriptions
     weather_texts = []
     for entry in weather_entries:
         weather_texts.append(f"{entry['timestamp'].strftime('%H:%M')} - {entry['description']}, {entry['temperature']}°C")
@@ -46,15 +44,18 @@ def generate_daily_summary():
 
     full_text = "\n".join(weather_texts)
     
-    # Generate summary
-    summary = summarize_with_gpt(full_text)
+    print(f"🔍 Raw text to summarize:\n{full_text}")  # Debugging Print
 
-    # Send summary to Telegram
+    summary = summarize_with_gpt(full_text)
+    
+    print(f"📝 GPT Summary Output:\n{summary}")  # Debugging Print
+
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     params = {"chat_id": CHANNEL_ID, "text": summary}
     requests.get(url, params=params)
 
     print(f"✅ Daily summary sent: {summary}")
+
 
 if __name__ == "__main__":
     generate_daily_summary()

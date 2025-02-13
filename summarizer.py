@@ -75,4 +75,5 @@ def generate_daily_summary():
     print(f"🚀 Telegram Response: {response.json()}", flush=True)
 
 if __name__ == "__main__":
+    print('Hi!')
     generate_daily_summary()

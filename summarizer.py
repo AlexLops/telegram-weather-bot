@@ -4,23 +4,43 @@ import requests
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 
+# Log file for debugging (in /tmp for Render)
+LOG_FILE = "/tmp/summarizer_debug.log"
+
+def log_message(message):
+    """Log messages to both console (Render logs) and a file."""
+    with open(LOG_FILE, "a") as log:
+        log.write(message + "\n")
+    print(message, flush=True)  # Ensure logs appear in Render
+
+log_message("✅ Summarizer script started execution.")
+
 # Load environment variables
 MONGO_URI = os.getenv("MONGO_URI")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+if not OPENAI_API_KEY:
+    log_message("❌ OpenAI API key is missing. Exiting summarizer.")
+    exit(1)
+
 # Connect to MongoDB
-client = MongoClient(MONGO_URI)
-db = client["parsed_content"]
-collection = db["weather"]
+try:
+    client = MongoClient(MONGO_URI)
+    db = client["parsed_content"]
+    collection = db["weather"]
+    log_message("✅ Connected to MongoDB successfully.")
+except Exception as e:
+    log_message(f"❌ MongoDB Connection Error: {e}")
+    exit(1)
 
 # OpenAI API Setup
 openai.api_key = OPENAI_API_KEY
 
 def summarize_with_gpt(text):
     """Summarize text using OpenAI's GPT API."""
-    print(f"🔍 Sending text to GPT: {text}", flush=True)
+    log_message(f"🔍 Sending text to GPT: {text[:100]}...")  # Log first 100 chars for debug
 
     try:
         response = openai.ChatCompletion.create(
@@ -31,26 +51,28 @@ def summarize_with_gpt(text):
             ]
         )
 
-        print(f"📝 OpenAI Response: {response}", flush=True)
-        return response['choices'][0]['message']['content']
+        summary = response['choices'][0]['message']['content']
+        log_message(f"📝 GPT Summary Output:\n{summary}")
+        return summary
     except Exception as e:
-        print(f"❌ OpenAI Error: {e}", flush=True)
+        log_message(f"❌ OpenAI Error: {e}")
         return None
 
 def generate_daily_summary():
     """Retrieve weather data from MongoDB, summarize it, and send to Telegram."""
-    print("📌 Summarizer started.", flush=True)
+    log_message("📌 Summarizer started.")
 
     # Get weather data from the last 24 hours
     since = datetime.utcnow() - timedelta(days=1)
     weather_entries = list(collection.find({"timestamp": {"$gte": since}}))
 
-    print(f"📊 Weather data retrieved: {len(weather_entries)} records", flush=True)
+    log_message(f"📊 Weather data retrieved: {len(weather_entries)} records")
 
     if not weather_entries:
-        print("⚠️ No weather data found for summarization.", flush=True)
+        log_message("⚠️ No weather data found for summarization.")
         return
 
+    # Compile weather descriptions
     weather_texts = [
         f"{entry['timestamp'].strftime('%H:%M')} - {entry['description']}, {entry['temperature']}°C"
         for entry in weather_entries
@@ -58,22 +80,27 @@ def generate_daily_summary():
     
     full_text = "\n".join(weather_texts)
     
-    print(f"📜 Full text for summarization:\n{full_text}", flush=True)
+    log_message(f"📜 Full text for summarization:\n{full_text}")
 
     summary = summarize_with_gpt(full_text)
 
     if not summary:
-        print("⚠️ No summary generated.", flush=True)
+        log_message("⚠️ No summary generated.")
         return
 
-    print(f"✅ GPT Summary Output:\n{summary}", flush=True)
+    log_message(f"✅ GPT Summary Output:\n{summary}")
 
+    # Send summary to Telegram
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     params = {"chat_id": CHANNEL_ID, "text": summary}
-    response = requests.get(url, params=params)
+    
+    try:
+        response = requests.get(url, params=params)
+        log_message(f"🚀 Telegram Response: {response.json()}")
+    except Exception as e:
+        log_message(f"❌ Telegram API Error: {e}")
 
-    print(f"🚀 Telegram Response: {response.json()}", flush=True)
+log_message("✅ Summarizer script finished execution.")
 
 if __name__ == "__main__":
-    print('Hi!')
     generate_daily_summary()

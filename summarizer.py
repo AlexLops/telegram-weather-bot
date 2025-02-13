@@ -35,15 +35,15 @@ except Exception as e:
     log_message(f"❌ MongoDB Connection Error: {e}")
     exit(1)
 
-# OpenAI API Setup
-openai.api_key = OPENAI_API_KEY
+# OpenAI API Setup (New Client Syntax)
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 def summarize_with_gpt(text):
-    """Summarize text using OpenAI's GPT API."""
+    """Summarize text using OpenAI's new API format."""
     log_message(f"🔍 Sending text to GPT: {text[:100]}...")  # Log first 100 chars
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a journalist providing engaging daily weather summaries."},
@@ -51,7 +51,7 @@ def summarize_with_gpt(text):
             ]
         )
 
-        summary = response["choices"][0]["message"]["content"]
+        summary = response.choices[0].message.content
         log_message(f"📝 GPT Summary Output:\n{summary}")
         return summary
     except Exception as e:

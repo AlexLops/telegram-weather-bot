@@ -4,7 +4,7 @@ import requests
 from pymongo import MongoClient
 from datetime import datetime, timedelta
 
-# Log file for debugging (in /tmp for Render)
+# Log file for debugging
 LOG_FILE = "/tmp/summarizer_debug.log"
 
 def log_message(message):
@@ -40,10 +40,10 @@ openai.api_key = OPENAI_API_KEY
 
 def summarize_with_gpt(text):
     """Summarize text using OpenAI's GPT API."""
-    log_message(f"🔍 Sending text to GPT: {text[:100]}...")  # Log first 100 chars for debug
+    log_message(f"🔍 Sending text to GPT: {text[:100]}...")  # Log first 100 chars
 
     try:
-        response = openai.client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a journalist providing engaging daily weather summaries."},
@@ -51,7 +51,7 @@ def summarize_with_gpt(text):
             ]
         )
 
-        summary = response['choices'][0]['message']['content']
+        summary = response["choices"][0]["message"]["content"]
         log_message(f"📝 GPT Summary Output:\n{summary}")
         return summary
     except Exception as e:

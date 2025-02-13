@@ -20,6 +20,8 @@ openai.api_key = OPENAI_API_KEY
 
 def summarize_with_gpt(text):
     """Summarize text using OpenAI's GPT API."""
+    print(f"🔍 Sending text to GPT: {text}")  # Debugging print
+    
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
@@ -27,35 +29,44 @@ def summarize_with_gpt(text):
             {"role": "user", "content": f"Summarize today's weather updates in 2-3 sentences:\n\n{text}"}
         ]
     )
+
+    print(f"📝 OpenAI Response: {response}")  # Debugging print
+
     return response['choices'][0]['message']['content']
 
 def generate_daily_summary():
     """Retrieve weather data from MongoDB, summarize it, and send to Telegram."""
+    print("📌 Summarizer started.")  # Debugging print
+
+    # Get weather data from the last 24 hours
     since = datetime.utcnow() - timedelta(days=1)
-    weather_entries = collection.find({"timestamp": {"$gte": since}})
+    weather_entries = list(collection.find({"timestamp": {"$gte": since}}))
 
-    weather_texts = []
-    for entry in weather_entries:
-        weather_texts.append(f"{entry['timestamp'].strftime('%H:%M')} - {entry['description']}, {entry['temperature']}°C")
+    print(f"📊 Weather data retrieved: {len(weather_entries)} records")  # Debugging print
 
-    if not weather_texts:
+    if not weather_entries:
         print("⚠️ No weather data found for summarization.")
         return
 
+    # Compile weather descriptions
+    weather_texts = [
+        f"{entry['timestamp'].strftime('%H:%M')} - {entry['description']}, {entry['temperature']}°C"
+        for entry in weather_entries
+    ]
+    
     full_text = "\n".join(weather_texts)
     
-    print(f"🔍 Raw text to summarize:\n{full_text}")  # Debugging Print
+    print(f"📜 Full text for summarization:\n{full_text}")  # Debugging print
 
     summary = summarize_with_gpt(full_text)
-    
-    print(f"📝 GPT Summary Output:\n{summary}")  # Debugging Print
+
+    print(f"✅ GPT Summary Output:\n{summary}")  # Debugging print
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     params = {"chat_id": CHANNEL_ID, "text": summary}
-    requests.get(url, params=params)
+    response = requests.get(url, params=params)
 
-    print(f"✅ Daily summary sent: {summary}")
-
+    print(f"🚀 Telegram Response: {response.json()}")  # Debugging print
 
 if __name__ == "__main__":
     generate_daily_summary()

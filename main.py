@@ -13,8 +13,9 @@ def trigger_parser():
 @app.route("/summarize")
 def trigger_summarizer():
     """Manually trigger the summarizer."""
+    print('Trigger sum1!')
     result = subprocess.run(["python3", "summarizer.py"], capture_output=True, text=True)
-    print('Trigger sum!')
+    print('Trigger sum2!')
     return f"✅ Summarizer executed:\n{result.stdout}"
 
 @app.route("/")

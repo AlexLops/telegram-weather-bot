@@ -44,7 +44,7 @@ def summarize_with_gpt(text):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a journalist providing engaging daily weather summaries."},
                 {"role": "user", "content": f"Summarize today's weather updates in 2-3 sentences:\n\n{text}"}

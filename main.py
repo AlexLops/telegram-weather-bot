@@ -6,6 +6,7 @@ app = Flask(__name__)
 
 @app.route("/parse")
 def trigger_parser():
+    print('Trigger parse!')
     """Manually trigger the parser."""
     result = subprocess.run(["python3", "parser.py"], capture_output=True, text=True)
     return f"✅ Parser executed:\n{result.stdout}"

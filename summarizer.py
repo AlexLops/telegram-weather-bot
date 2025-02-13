@@ -43,7 +43,7 @@ def summarize_with_gpt(text):
     log_message(f"🔍 Sending text to GPT: {text[:100]}...")  # Log first 100 chars for debug
 
     try:
-        response = openai.ChatCompletion.create(
+        response = openai.client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a journalist providing engaging daily weather summaries."},
